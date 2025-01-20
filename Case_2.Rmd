@@ -1,0 +1,348 @@
+---
+title: "Google Case Study A"
+author: "Goder"
+date: "2025-01-16"
+output: html_document
+---
+
+# Setting Up Environment
+Setting up environment by load the package "tidyverse" and "conflicted" to manage conflict
+
+```{r}
+# Load tidyverse for data manipulation and visualization
+library(tidyverse)
+
+# Load conflicted to resolve naming conflicts between packages
+library(conflicted)
+
+# set dplyr::filter and lag as the default choice
+conflict_prefer("filter", "dplyr")
+conflict_prefer("lag", "dplyr")
+```
+
+# Collect Data
+Dataset from [divy_data]<https://divvy-tripdata.s3.amazonaws.com/index.html>. In this case, dataset used is from 2024, January to December
+
+```{r}
+# Load monthly Divvy trip data CSV files into separate data frames
+DT_01 <- read.csv("D:/Berkas/Coursera Certification/Google Data Abalytics Professional Certification/Study Case/Case A/Dataset/202401-divvy-tripdata.csv")
+DT_02 <- read.csv("D:/Berkas/Coursera Certification/Google Data Abalytics Professional Certification/Study Case/Case A/Dataset/202402-divvy-tripdata.csv")
+DT_03 <- read.csv("D:/Berkas/Coursera Certification/Google Data Abalytics Professional Certification/Study Case/Case A/Dataset/202403-divvy-tripdata.csv")
+DT_04 <- read.csv("D:/Berkas/Coursera Certification/Google Data Abalytics Professional Certification/Study Case/Case A/Dataset/202404-divvy-tripdata.csv")
+DT_05 <- read.csv("D:/Berkas/Coursera Certification/Google Data Abalytics Professional Certification/Study Case/Case A/Dataset/202405-divvy-tripdata.csv")
+DT_06 <- read.csv("D:/Berkas/Coursera Certification/Google Data Abalytics Professional Certification/Study Case/Case A/Dataset/202406-divvy-tripdata.csv")
+DT_07 <- read.csv("D:/Berkas/Coursera Certification/Google Data Abalytics Professional Certification/Study Case/Case A/Dataset/202407-divvy-tripdata.csv")
+DT_08 <- read.csv("D:/Berkas/Coursera Certification/Google Data Abalytics Professional Certification/Study Case/Case A/Dataset/202408-divvy-tripdata.csv")
+DT_09 <- read.csv("D:/Berkas/Coursera Certification/Google Data Abalytics Professional Certification/Study Case/Case A/Dataset/202409-divvy-tripdata.csv")
+DT_10 <- read.csv("D:/Berkas/Coursera Certification/Google Data Abalytics Professional Certification/Study Case/Case A/Dataset/202410-divvy-tripdata.csv")
+DT_11 <- read.csv("D:/Berkas/Coursera Certification/Google Data Abalytics Professional Certification/Study Case/Case A/Dataset/202411-divvy-tripdata.csv")
+DT_12 <- read.csv("D:/Berkas/Coursera Certification/Google Data Abalytics Professional Certification/Study Case/Case A/Dataset/202412-divvy-tripdata.csv")
+```
+
+## Check Structure Dataset
+```{r}
+str(DT_01)
+str(DT_02)
+```
+
+## Merged all dataset into one big dataframe
+```{r}
+all_trips <- bind_rows(DT_01,DT_02,DT_03,DT_04,DT_05,DT_06,DT_07,DT_08,DT_09,DT_10,DT_11,DT_12)
+```
+
+## Remove start_station_id, end_station_name, end_station_id, start_lat, start_lng, end_lat, end_lng
+```{r}
+fix_all_trips <- all_trips %>% 
+  select(-c(start_station_id, end_station_name, end_station_id, start_lat, start_lng, end_lat, end_lng))
+```
+
+```{r}
+str(fix_all_trips) #See list of columns and data types (numeric, character, etc)
+```
+
+# Clean Data
+This step describes cleaning up irrelevant data and adding new columns for further analysis
+
+## Inspect Dataframe
+```{r}
+str(fix_all_trips)  #See list of columns and data types (numeric, character, etc)
+head(fix_all_trips)  #See the first 6 rows of data frame
+```
+
+## Check for empty values (NA) in each column
+```{r}
+colSums(is.na(fix_all_trips))
+```
+
+## Check unique value column member_casual
+```{r}
+length(unique(fix_all_trips$member_casual))
+```
+## Create new column named "day_of_week" that contains the days based on the date and column "month"
+```{r}
+# Convert the 'started_at' column to Date format
+date_format <- as.Date(fix_all_trips$started_at)
+
+# Extract the month name from the date and store it in a new column 'month'
+fix_all_trips$month <- format(as.Date(date_format), "%B")
+
+# Extract the day of the week from the date and store it in a new column 'day_of_week'
+fix_all_trips$day_of_week <- format(as.Date(date_format), "%A")
+```
+
+```{r}
+head(fix_all_trips$month) #See the first 6 rows of month column
+head(fix_all_trips$day_of_week) #See the first 6 rows of day_of_week column
+```
+
+## Create new column named "ride_length" that contains value calculation of the length of time riding.
+
+```{r}
+# Calculate the difference in time between 'ended_at' and 'started_at' columns
+difftime_ride <- difftime(fix_all_trips$ended_at, fix_all_trips$started_at)
+
+# Convert the time difference to numeric format
+difftime_ride <- as.numeric(as.character(difftime_ride))
+```
+
+```{r}
+# Add the calculated ride length to the dataset as a new column 'ride_length'
+fix_all_trips$ride_length <- difftime_ride
+
+# Check if the 'ride_length' column is numeric
+is.numeric(fix_all_trips$ride_length)
+```
+
+
+```{r}
+# Check if any ride length in the 'ride_length' column is less than 0
+any(fix_all_trips$ride_length < 0)
+```
+
+```{r}
+# Check for any duplicated row names in the 'fix_all_trips' dataset
+anyDuplicated(rownames(fix_all_trips))
+```
+
+
+## Save clean data for further analysis
+
+```{r}
+# Filter out rows with negative ride lengths and create a new dataset 'all_trips_2024'
+all_trips_2024 <- fix_all_trips[!(fix_all_trips$ride_length < 0), ]
+```
+
+
+```{r}
+str(all_trips_2024) #See list of columns and data types (numeric, character, etc)
+```
+
+```{r}
+# Save the 'all_trips_2024' dataset to a CSV file without row names
+write.csv(all_trips_2024, file = '2024_trips.csv', row.names = FALSE)
+```
+
+# Conduct Descriptive Analysis
+
+```{r}
+# Read the '2024_trips.csv' file into the 'all_trips' dataset
+all_trips <- read.csv("D:/Berkas/Coursera Certification/Google Data Abalytics Professional Certification/Study Case/Case A/Dataset/2024_trips.csv")
+```
+
+```{r}
+str(all_trips) #See list of columns and data types (numeric, character, etc)  
+head(all_trips) #See the first 6 rows of data frame
+```
+
+## Total member and casual 
+```{r}
+# Group the data by 'member_casual' and summarize the number of rides for each group
+all_trips %>% group_by(member_casual) %>% summarise(number_of_ride = n())
+```
+
+
+## Descriptive analysis on month (total rider type)
+
+```{r}
+# Convert 'month' column to a factor with levels in chronological order
+all_trips$month <- factor(all_trips$month, 
+                          levels = c("January", "February", "March", "April", "May",
+                                     "June", "July", "August", "September", "October",
+                                     "November", "December"))
+```
+
+
+```{r}
+# Group the data by month and summarize the number of rides, then arrange by month
+all_trips %>% group_by(month) %>% summarise(number_of_rides = n()) %>% arrange(month)
+
+# Aggregate the data by month and rider type to count the number of ride IDs, then arrange by month
+all_trips %>% aggregate(ride_id ~ month + member_casual, FUN = length) %>% arrange(month)
+```
+
+## Descriptive analysis on day_of_week
+
+```{r}
+# Convert 'day_of_week' column to a factor with levels in the correct order (Sunday to Saturday)
+all_trips$day_of_week <- factor(all_trips$day_of_week, 
+                          levels = c("Sunday", "Monday", "Tuesday", "Wednesday",
+                                     "Thursday", "Friday", "Saturday"))
+```
+
+
+```{r}
+# Group the data by day of the week, summarize the number of rides, and arrange by day of the week
+all_trips %>% group_by(day_of_week) %>% summarise(number_of_rides = n()) %>% arrange(day_of_week)
+
+# Aggregate the data by day of the week and rider type to count the number of ride IDs, then arrange by day of the week
+all_trips %>% aggregate(ride_id ~ day_of_week + member_casual, FUN = length) %>% arrange(day_of_week)
+```
+
+
+## Descriptive analysis on ride_length (all figures in seconds)
+
+```{r}
+# Generate summary statistics for the 'ride_length' column in the 'all_trips' dataset
+summary(all_trips$ride_length)
+```
+```{r}
+# Compare members and casual users
+# Calculate the mean ride length for each rider type
+all_trips %>% aggregate(ride_length ~ member_casual, FUN = mean)
+
+# Calculate the median ride length for each rider type
+all_trips %>% aggregate(ride_length ~ member_casual, FUN = median)
+
+# Calculate the maximum ride length for each rider type
+all_trips %>% aggregate(ride_length ~ member_casual, FUN = max)
+
+# Calculate the minimum ride length for each rider type
+all_trips %>% aggregate(ride_length ~ member_casual, FUN = min)
+
+# Count the number of rides for each rider type
+all_trips %>% aggregate(ride_length ~ member_casual, FUN = length)
+```
+
+```{r}
+# Calculate the average ride length grouped by rider type and day of the week, then arrange by member type and day of the week
+all_trips %>% aggregate(ride_length ~ member_casual + day_of_week, FUN = mean) %>% arrange(member_casual, day_of_week)
+```
+
+## Descriptive Analysis on start_station_name
+
+```{r}
+# Count the number of unique start station names in the 'all_trips' dataset
+length(unique(all_trips$start_station_name))
+
+# Check if there are any empty start station names
+any(all_trips$start_station_name == "")
+```
+
+```{r}
+# Group the data by 'start_station_name', count the number of rides for each station, 
+# arrange by the most visited, and select the top 10 most visited stations
+all_trips %>% group_by(start_station_name) %>% summarise(most_visited = n()) %>% 
+  arrange(desc(most_visited)) %>% slice(1:10)
+```
+
+# Visualization Result
+
+```{r}
+# Group data by month and membership type, count the number of rides, and arrange by month and membership type
+all_trips %>%
+  group_by(month, member_casual) %>%
+  summarise(number_of_rides = n()) %>%
+  arrange(month, member_casual) %>%
+
+  # Create a bar plot showing the number of rides per month for each membership type
+  ggplot(mapping = aes(x = month, y = number_of_rides, fill = member_casual)) +
+  geom_col(position = "dodge") +  # Dodge position to separate bars for each membership type
+  labs(title = "Number of Rides per Month",  # Plot title
+       x = "Month",  # X-axis label
+       y = "Number of Rides",  # Y-axis label
+       fill = "Rider Type") +  # Legend title
+  theme_minimal()  # Apply a minimal theme for the plot
+```
+
+
+```{r}
+# Create a bar plot showing the number of rides per day of the week, separated by rider type
+ggplot(data = all_trips, mapping = aes(x = day_of_week)) +
+  geom_bar(aes(fill = member_casual), position = "dodge") +  # Separate bars by 'member_casual' for each day
+  labs(title = "Number of Rides per Day",  # Plot title
+       x = "Day",  # X-axis label
+       y = "Number of Rides",  # Y-axis label
+       fill = "Rider Type") +  # Legend title for 'fill' (rider type)
+  theme_minimal()  # Apply a minimal theme for the plot
+```
+```{r message=FALSE, warning=FALSE}
+# Group the data by membership type and day of the week, then calculate the number of rides and average duration
+all_trips %>% 
+  group_by(member_casual, day_of_week) %>% 
+  summarise(number_of_rides = n(),  # Count the number of rides
+            average_duration = mean(ride_length)) %>%  # Calculate the average ride duration
+  arrange(member_casual, day_of_week) %>%  # Sort by membership type and day of the week
+  
+  # Create a bar plot of average duration per day, grouped by rider type
+  ggplot(aes(x = day_of_week, y = average_duration, fill = member_casual)) +
+  geom_col(position = "dodge") +  # Separate bars for each rider type
+  labs(title = "Average Duration per Day",  # Plot title
+       x = "Day",  # X-axis label
+       y = "Average Duration",  # Y-axis label
+       fill = "Rider Type") +  # Legend title for fill (rider type)
+  theme_minimal()  # Apply a minimal theme for the plot
+```
+
+```{r}
+# Group the data by rider type, then calculate the number of rides and average ride duration for each type
+all_trips %>% 
+  group_by(member_casual) %>% 
+  summarise(number_of_rides = n(),  # Count the number of rides for each rider type
+            average_duration = mean(ride_length)) %>%  # Calculate average ride duration
+  arrange(member_casual) %>%  # Arrange by rider type
+  
+  # Create a bar plot for average duration per rider type
+  ggplot(aes(x = member_casual, y = average_duration, fill = member_casual)) +
+  geom_col(position = "dodge") +  # Create a dodge bar chart
+  labs(title = "Average Duration per Rider Type",  # Plot title
+       x = "Rider Type",  # X-axis label
+       y = "Average Duration",  # Y-axis label (corrected from 'Number of Rides')
+       fill = "Rider Type") +  # Legend title for rider type
+  theme_minimal()  # Apply a minimal theme for a clean plot appearance
+```
+
+```{r}
+# Group the data by start station name, count the number of visits per station, and arrange by most visited
+all_trips %>% 
+  group_by(start_station_name) %>% 
+  summarise(most_visited = n()) %>%  # Count visits per station
+  arrange(desc(most_visited)) %>%  # Arrange stations by most visited
+  slice(2:6) %>%  # Select the 2nd to 6th most visited stations
+  
+  # Create a bar plot of the most visited stations
+  ggplot(aes(x = start_station_name, y = most_visited, fill = start_station_name)) +
+  geom_col(position = "dodge") +  # Create dodge bar chart
+  labs(title = "Most Visited Station Name",  # Plot title
+       x = "Station Name",  # X-axis label
+       y = "Number of Visits",  # Y-axis label
+       fill = "Station Name") +  # Legend title for station name
+  theme_minimal()  # Apply a minimal theme for the plot
+```
+
+## Export Summary For Further Analysis
+
+Create a csv file that will be visualize in Tableau
+```{r}
+# Group the data by rider type, month, and day of the week, and calculate summary statistics
+summarise_value <- all_trips %>% 
+  group_by(member_casual, month, day_of_week) %>%  # Group by rider type, month, and day of the week
+  summarise(
+    number_of_rides = n(),  # Count the number of rides
+    avarage_duration = mean(ride_length)  # Calculate the average ride duration
+  ) %>% 
+  group_by(member_casual, month, day_of_week)  # Reapply the grouping for further analysis if needed
+```
+```{r}
+write.csv(summarise_value, "summarise_trips_2024.csv")
+```
+
