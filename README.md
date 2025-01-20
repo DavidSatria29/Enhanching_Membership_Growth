@@ -43,6 +43,7 @@ The **finance analysts** at Cyclistic concluded that **annual members are more p
 3. **Run the Scripts**: Execute the R scripts provided to clean the data, analyze trends, and visualize the results.
 4. **Review Outputs**: Use the generated visualizations and summaries to support strategic decisions.
 
----
 **For discussion of analysis, conclusions, and recommendations, please refer to the file “Enhanching membership growth.pptx”.**
+
+---
 
